@@ -1,5 +1,4 @@
-.chalice/deployments/
-.chalice/venv/
+.chalice
 
 chalicelib/credential.py
 
