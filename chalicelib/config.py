@@ -1,7 +1,7 @@
 from . import credential
 
 NEO4J_CONFIG = {
-    "host": "http://ec2-13-209-21-148.ap-northeast-2.compute.amazonaws.com",
+    "host": "http://ec2-52-79-58-22.ap-northeast-2.compute.amazonaws.com",
     "port": "7474",
     "headers": {
         "Accept": "application/json",
@@ -13,7 +13,7 @@ NEO4J_CONFIG = {
 }
 
 REDIS_CONFIG = {
-    "host": "http://ec2-13-209-21-148.ap-northeast-2.compute.amazonaws.com",
+    "host": "http://ec2-52-79-58-22.ap-northeast-2.compute.amazonaws.com",
     "port": "6379",
     "username": credential.REDIS_CREDENTIAL["username"],
     "password": credential.REDIS_CREDENTIAL["password"]

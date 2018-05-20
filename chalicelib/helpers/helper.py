@@ -1,17 +1,28 @@
-import requests
-import json
-import random
+def generate_search_query(search_filter):
+    sort_order = {
+            'courseName': "name",
+            'courseNumber': "number",
+            'grade': "grade",
+            'load': "load"
+        }.pop(search_filter.pop("sortOrder"))
+    keyword = search_filter.pop("keyword")
 
-def generate_match_param(filter):
-    param = {}
-    for k, v in filter.items():
-        if v == "all":
-            continue
-        param[k] = "{%s}" % k
-    return json.dumps(param).replace('"', '') if param else ''
+    departments = search_filter.pop("department").split(',')   #CS, EE, HSS
+    course_levels = search_filter.pop("courseLevel").replace("00", "").split(',')    #N00 => N
+
+    match_clause = "MATCH (x:Course)-[r:HELD {year: {year}, term: {term}}]->(n:Lecture)"
+    keyword_clause = "x.name =~ '(?i).*%s.*' OR n.professor =~'(?i).*%s.*' OR x.number =~'(?i).*%s.*'" % (keyword, keyword, keyword)
+    department_clause = " OR ".join(["x.number =~ '(?i)%s[0-9]{3}'" % d for d in departments])
+    course_level_clause = " OR ".join(["x.number =~ '(?i)[A-Z]*%s[0-9]{2}'" % l for l in course_levels])
+    where_clause = "WHERE (%s) AND (%s) AND (%s)" % (keyword_clause, department_clause, course_level_clause)
+    return_clause = "RETURN x.number, x.name, x.subtitle, x.code, n.professor, n.division, n.grades, n.classTime, n.dropChange, n.limit"
+    order_clause = "ORDER BY x.%s" % sort_order
+
+    return "%s %s %s %s" % (match_clause, where_clause, return_clause, order_clause)
+
 
 def generate_grade(grade_list):
-    #TODO: Dummy function!
+    # TODO: Dummy function!
     grade = [
         "4.3", "4.0", "3.7", "3.3", "3.0", "2.7",
         "2.3", "2.0", "1.7", "1.3", "1.0", "0.0"
@@ -20,65 +31,34 @@ def generate_grade(grade_list):
     avg = sum(grade_list) / len(grade_list)
     return grade[min(int(avg), 11)]
 
-def generate_load(load_list):
-    #TODO: Dummy function!
-    return round(random.uniform(0, 4.3), 2)
 
-def generate_body(data, sort_order):
+def generate_load():
+    # TODO: Dummy function!
+    return "?"
+
+
+def generate_body(data):
     res = []
     for lecture in data:
         info = {
-            "professor": lecture[3],
-            "grades": generate_grade(lecture[4]),
-            "load": generate_load(lecture[5]),
-            "limit": lecture[6],
-            "subtitle": lecture[7]
+            "professor": lecture[4],
+            "division": lecture[5],
+            "grades": generate_grade(lecture[6]),
+            "classTime": lecture[7],
+            "load": generate_load(),
+            "limit": lecture[9]
         }
 
-        found = list(filter(lambda x: x["number"] == lecture[1], res))
+        found = list(filter(lambda x: x["number"] == lecture[0] and x["subtitle"] == lecture[2], res))
         if found:
             idx = res.index(found[0])
             res[idx]["lectures"].append(info)
         else:
             res.append({
-                "name": lecture[0],
-                "number": lecture[1],
-                "code": lecture[2],
+                "number": lecture[0] if not lecture[2] else lecture[0] + lecture[5].upper(),
+                "name": lecture[1],
+                "subtitle": lecture[2],
+                "code": lecture[3],
                 "lectures": [info]
             })
-
-    return sorted(res, key=lambda c: c[sort_order])
-
-def fill_major_info(dic, data):
-    dic["name"] = data[0]
-    dic["code"] = data[1]
-    dic["number"] = data[2]
-    dic["type"] = "Major Required"
-    dic["time"] = [
-        ["Mon", "10:30", "11:45", "Class"],
-        ["Wed", "10:30", "11:45", "Class"],
-        ["Thu", "19:00", "20:45", "Lab"],
-    ]
-    dic["flow"] = {"Maybe": "We can do it!"}
-    dic["friends"] = ["Smile", "Even", "If", "You", "Are", "Sad"]
-
-def random_professor(meaningless):
-    professors = ["Seokchan Ahn", "Yejun Kim", "Chansu Park"]
-    return professors[random.randrange(0, 3)]
-
-def generate_detail(data):
-    ret = {"lectures": {}}
-    if not data:
-        return ret
-        
-    fill_major_info(ret, data[0])
-    for lecture in data:
-        ret["lectures"].setdefault(lecture[5], {})
-        # if lecture[5] not in ret["lectures"].keys():
-
-        ret["lectures"][lecture[5]][random_professor(lecture[6])] = {
-            "grades": generate_grade(lecture[7]),
-            "load": generate_load(lecture[8]),
-            "size": lecture[9]
-        }
-    return ret
+    return res
