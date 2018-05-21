@@ -3,25 +3,28 @@ from chalice import Chalice
 from chalicelib.overall import generate_overall
 from chalicelib.detail import generate_detail
 from chalicelib import pin
-from chalicelib.recommendation import recommend
+from chalicelib.recommend import recommend
 
 app = Chalice(app_name='cs408e-endpoints')
-app.debug = True
 
 
 # GET: 전체 개설과목 조회
 @app.route('/courses/{year}/{term}', cors=True)
 def get_all_courses(year, term):
-    search_filter = app.current_request.query_params or {}
-    return generate_overall(year, term, search_filter)
+    request = app.current_request
+    student_id = _get_authorized_student_id(request)
+    search_filter = request.query_params or {}
+    return generate_overall(year, term, search_filter, student_id)
 
 
 # GET: 세부 과목 조회
 @app.route('/course/{course_number}', cors=True)
 def get_specific_course_detail(course_number):
-    qs = app.current_request.query_params or {}
+    request = app.current_request
+    student_id = _get_authorized_student_id(request)
+    qs = request.query_params or {}
     subtitle = qs.pop("subtitle", "")
-    return generate_detail(course_number, subtitle)
+    return generate_detail(course_number, subtitle, student_id)
 
 
 # GET: 과목 PIN 리스트 조회
@@ -42,13 +45,16 @@ def change_pinned_status(course_number):
     return pin.change_pinned_status(student_id, course_number, subtitle, is_pin)
 
 
-# POST: 과목 추천
+# GET: 과목 추천
 @app.route('/recommend', methods=['POST'], cors=True)
 def recommend_courses():
-    body = app.current_request.json_body
-    return recommend(body)
+    request = app.current_request
+    student_id = _get_authorized_student_id(request)
+    body = request.json_body
+    return recommend(student_id, body)
 
 
+# Helper: 토큰
 def _get_authorized_student_id(req):
     # TODO: Implement `Login` feature
     return "DUMMY"
