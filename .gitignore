@@ -1,6 +1,6 @@
 .chalice
 
-chalicelib/credential.py
+chalicelib/helpers/credential.py
 
 # Created by https://www.gitignore.io/api/macos,python,pycharm
 
