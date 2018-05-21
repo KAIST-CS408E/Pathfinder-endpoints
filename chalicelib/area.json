@@ -1,0 +1,72 @@
+{
+  "Computing Theory": {
+    "explanation": "Theory is a fundamental foundation of computing and includes research areas such as algorithms, computational complexity, graph theory, computational geometry, discrete geometry, programming languages, compilers. We offer the following related courses.",
+    "curriculum": [
+      "CS202", "CS204", "CS206", "CS220", "CS300", "CS320", "CS322", "CS370", "CS402", "CS420", "CS422",
+      "CS500", "CS504", "CS520", "CS522", "CS579",
+      "CS600", "CS620", "CS624", "CS700"
+    ]
+  },
+  "Systems and Networks": {
+    "explanation": "Systems-and-Networks area at the KAIST School of Computing provides the curriculum for computer system hardware/software, and networking technologies. The curriculum covers the basis and application of various computer system and network technologies, including the mobile and distributed systems based on the networked system design discipline. It provides the fundamental education for critical technologies, such as mobile computing, cloud computing, internet technology, massive data center systems, IoT (Internet of Things), GPU/accelerators for deep learning, system security, and distributed data analysis platforms.",
+    "curriculum": [
+      "CS211", "CS230", "CS310", "CS311", "CS330", "CS341", "CS420", "CS442", "CS443",
+      "CS510", "CS530", "CS540", "CS542", "CS543", "CS546"
+    ]
+  },
+  "Software Design": {
+    "explanation": "Software design and engineering deal with ways to design and implement large scale software systems, as well as how to analyze and validate them. This curriculum at the KAIST School of Computing covers the entire lifecycle of software, starting from analysis of user requirements to validation of finished software. In addition, to cope with the increasing size and complexity of software systems, it focuses on ways to automate various tasks to improve the efficiency of development. Knowledge of software engineering forms the basis of development of all software systems that require high quality and high reliability.",
+    "curriculum": [
+      "CS350", "CS453", "CS454", "CS457", "CS459",
+      "CS550", "CS552", "CS554"
+    ],
+    "underGraduatedSpecialTopics": [
+      "Automated Software Analysis"
+    ]
+  },
+  "Secure Computing": {
+    "explanation": "The secure computing curriculum at the KAIST School of Computing provides interdisciplinary courses covering system hacking, system security, software security, Web security and cryptography. The offered classes provide in-depth understanding of various security vulnerabilities and their risks. The curriculum also focuses on mitigating the addressed vulnerabilities and designing secure systems.",
+    "curriculum": [
+      "CS204", "CS230", "CS330", "CS341", "CS420", "CS448",
+      "CS510", "CS546", "CS548"
+    ]
+  },
+  "Visual Computing (Graphics/Vision)": {
+    "explanation": "The KAIST School of Computing offers a track in Visual Computing (VC) for students interested in deeper, concentrated studies on computer graphics and vision. Students who complete several of these courses will have opportunities to connect with faculty in computer graphics and vision, in addition to machine learning areas. These lectures will open up opportunities for independent research, URP, and undergraduate thesis research on this topic. In particular, computer graphics and vision are essential and foundational technologies for industry application of computer science.",
+    "curriculum": [
+      "CS204", "CS376", "CS380", "CS482", "CS484",
+      "CS504", "CS576", "CS580",
+      "CS681", "CS688"
+    ],
+    "underGraduatedSpecialTopics": [
+      "Deep Learning"
+    ]
+  },
+  "Artificial Intelligence (AI) & Big Data": {
+    "explanation": "",
+    "curriculum": [
+      "CS270", "CS372", "CS376", "CS484", "CS454", "CS470", "CS474",
+      "CS564", "CS570", "CS571", "CS574", "CS576"
+    ],
+    "underGraduatedSpecialTopics": [
+      "Probabilistic Programming",
+      "Deep Learning"
+    ]
+  },
+  "Interactive Computing (HCI)": {
+    "explanation": "The KAIST School of Computing offers a track in Interactive Computing for students interested in deeper, concentrated studies on Human-Computer Interaction (HCI) and Social Computing. Students who follow this track will have opportunities to explore the area further via independent research, URP, and undergraduate thesis research. Moreover, due to the highly practical nature of the field, students can master the foundational knowledge and skills applicable to various industry applications of computer science.",
+    "curriculum": [
+      "CS270", "CS374", "CS380", "CS442", "CS473", "CS482",
+      "CS564", "CS572", "CS584",
+      "CS612", "CS788"
+    ],
+    "underGraduatedSpecialTopics": [
+      "Social Media and Culture",
+      "Intelligent User Interfaces: AI and HCI",
+      "Human-Computer Interaction"
+    ],
+    "graduateSpecialTopics": [
+      "Human-Computer Interaction"
+    ]
+  }
+}

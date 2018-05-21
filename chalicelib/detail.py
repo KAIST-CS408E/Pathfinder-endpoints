@@ -7,7 +7,7 @@ from . import config
 NEO4J_CONFIG = config.NEO4J_CONFIG
 
 QUERY_ABOUT_THIS_COURSE = """
-    MATCH (c:Course {number: {courseNumber}})-[h:HELD]->(l:Lecture)
+    MATCH (c:Course {number: {courseNumber}, subtitle: {subtitle}})-[h:HELD]->(l:Lecture)
     WHERE %s - toInt(h.year) < 5
     WITH c, l,
     CASE l.term
@@ -23,7 +23,7 @@ QUERY_ABOUT_THIS_COURSE = """
 
 # 같이 듣는 과목
 QUERY_WITH_THIS_COURSE = """
-    MATCH (:Course {number: {courseNumber}})<-[t1:TAKE]-(:Student)-[t2:TAKE]->(n:Course)
+    MATCH (:Course {number: {courseNumber}, subtitle: {subtitle}})<-[t1:TAKE]-(:Student)-[t2:TAKE]->(n:Course)
     WHERE toInt(t1.semester) = toInt(t2.semester)
     RETURN n.number, n.name, count(*) as cnt
     ORDER BY cnt DESC
@@ -32,7 +32,7 @@ QUERY_WITH_THIS_COURSE = """
 
 # 선수 과목들
 QUERY_BEFORE_THIS_COURSE = """
-    MATCH (n:Course)<-[t1:TAKE]-(:Student)-[t2:TAKE]->(:Course {number: {courseNumber}})
+    MATCH (n:Course)<-[t1:TAKE]-(:Student)-[t2:TAKE]->(:Course {number: {courseNumber}, subtitle: {subtitle}})
     WHERE toInt(t1.semester) < toInt(t2.semester)
     RETURN n.number, n.name, count(*) as cnt
     ORDER BY cnt DESC
@@ -41,7 +41,7 @@ QUERY_BEFORE_THIS_COURSE = """
 
 # 직후 과목들
 QUERY_AFTER_THIS_COURSE = """
-    MATCH (:Course {number: {courseNumber}})<-[t1:TAKE]-(:Student)-[t2:TAKE]->(n:Course)
+    MATCH (:Course {number: {courseNumber}, subtitle: {subtitle}})<-[t1:TAKE]-(:Student)-[t2:TAKE]->(n:Course)
     WHERE toInt(t1.semester) + 1 = toInt(t2.semester)
     RETURN n.number, n.name, count(*) as cnt
     ORDER BY cnt DESC
@@ -56,8 +56,8 @@ QUERIES = {
 }
 
 
-def generate_detail(course_number):
-    info = __gather_detail_information(course_number)
+def generate_detail(course_number, subtitle):
+    info = __gather_detail_information(course_number, subtitle)
     about = info.pop("about")
     if not about:
         return {}
@@ -72,16 +72,16 @@ def generate_detail(course_number):
     return ret
 
 
-def __gather_detail_information(course_number):
+def __gather_detail_information(course_number, subtitle):
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     future = asyncio.Future()
-    _ = asyncio.ensure_future(__requests(course_number, future))
+    _ = asyncio.ensure_future(__requests(course_number, subtitle, future))
     loop.run_until_complete(future)
     return {k: v for d in future.result() for k, v in d.items()}
 
 
-async def __requests(course_number, future):
+async def __requests(course_number, subtitle, future):
     url = "%s:%s/db/data/cypher" % (NEO4J_CONFIG["host"], NEO4J_CONFIG["port"])
     auth = BasicAuth(NEO4J_CONFIG["username"], NEO4J_CONFIG["password"])
     tasks = []
@@ -91,7 +91,8 @@ async def __requests(course_number, future):
             body = {
                 "query": query,
                 "params": {
-                    "courseNumber": course_number
+                    "courseNumber": course_number,
+                    "subtitle": subtitle
                 }
             }
             t = asyncio.ensure_future(__fetch(url, key, body, session))

@@ -1,14 +1,6 @@
 from chalice import Chalice
-import requests
-from chalicelib import config
-from chalicelib.helpers.helper import *
+from chalicelib.overall import generate_overall
 from chalicelib.detail import generate_detail
-
-NEO4J_CONFIG = config.NEO4J_CONFIG
-
-NEO4J_URL = "%s:%s/%s/" % (NEO4J_CONFIG["host"], NEO4J_CONFIG["port"], "db/data/cypher")
-HEADERS = NEO4J_CONFIG["headers"]
-AUTH = (NEO4J_CONFIG["username"], NEO4J_CONFIG["password"])
 
 app = Chalice(app_name='cs408e-endpoints')
 app.debug = True
@@ -18,18 +10,18 @@ app.debug = True
 @app.route('/courses/{year}/{term}', cors=True)
 def get_all_courses(year, term):
     search_filter = app.current_request.query_params or {}
-    query = {
-        "query": generate_search_query(search_filter),
-        "params": {"year": year, "term": term}
-    }
-
-    r = requests.post(url=NEO4J_URL, data=json.dumps(query), headers=HEADERS, auth=AUTH)
-    assert r.status_code == 200
-
-    return {"year": year, "term": term, "courses": generate_body(r.json()['data'])}
+    return generate_overall(year, term, search_filter)
 
 
 # GET: 세부 과목 조회
-@app.route('/course/{course_no}', cors=True)
-def get_specific_course_detail(course_no):
-    return generate_detail(course_no)
+@app.route('/course/{course_number}', cors=True)
+def get_specific_course_detail(course_number):
+    qs = app.current_request.query_params or {}
+    subtitle = qs.pop("subtitle", "")
+    return generate_detail(course_number, subtitle)
+
+
+# POST: 추천
+@app.route('/recommend', cors=True)
+def recommend_courses():
+    return {}
