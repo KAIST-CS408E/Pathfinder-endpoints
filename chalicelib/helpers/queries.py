@@ -11,10 +11,10 @@ QUERY_ALL_COURSES = """
 # 현재 학기에 개설된 과목 중 핀 한 과목
 QUERY_PINNED_COURSES_THIS_TIME = """
     MATCH (:Student {studentID: {studentID}})-[:PIN]->(c:Course)-[:HELD {year: {year}, term: {term}}]->(:Lecture)
-    RETURN c.number, c.subtitle
-    ORDER BY c.number
+    WITH DISTINCT c as d
+    RETURN d.number, d.subtitle
+    ORDER BY d.number
 """
-
 
 # 과목 디테일
 QUERY_ABOUT_THIS_COURSE = """
@@ -36,7 +36,7 @@ QUERY_ABOUT_THIS_COURSE = """
 QUERY_WITH_THIS_COURSE = """
     MATCH (:Course {number: {courseNumber}, subtitle: {subtitle}})<-[t1:TAKE]-(:Student)-[t2:TAKE]->(n:Course)
     WHERE toInt(t1.semester) = toInt(t2.semester)
-    RETURN n.number, n.name, count(*) as cnt
+    RETURN n.number, n.name, n.subtitle, count(*) as cnt
     ORDER BY cnt DESC
     LIMIT 5
 """
@@ -45,7 +45,7 @@ QUERY_WITH_THIS_COURSE = """
 QUERY_BEFORE_THIS_COURSE = """
     MATCH (n:Course)<-[t1:TAKE]-(:Student)-[t2:TAKE]->(:Course {number: {courseNumber}, subtitle: {subtitle}})
     WHERE toInt(t1.semester) < toInt(t2.semester)
-    RETURN n.number, n.name, count(*) as cnt
+    RETURN n.number, n.name, n.subtitle, count(*) as cnt
     ORDER BY cnt DESC
     LIMIT 5
 """
@@ -54,7 +54,7 @@ QUERY_BEFORE_THIS_COURSE = """
 QUERY_AFTER_THIS_COURSE = """
     MATCH (:Course {number: {courseNumber}, subtitle: {subtitle}})<-[t1:TAKE]-(:Student)-[t2:TAKE]->(n:Course)
     WHERE toInt(t1.semester) + 1 = toInt(t2.semester)
-    RETURN n.number, n.name, count(*) as cnt
+    RETURN n.number, n.name, n.subtitle, count(*) as cnt
     ORDER BY cnt DESC
     LIMIT 5
 """
@@ -76,19 +76,37 @@ QUERY_PINNED_COURSES = """
 
 # 과목 핀
 QUERY_PIN_COURSE = """
-    MATCH (s:Student {studentID: {studentID}}), (c:Course {number: {number}, subtitle: {subtitle}})
+    MATCH (s:Student {studentID: {studentID}})
+    WITH s
+    MATCH (c:Course {number: {number}, subtitle: {subtitle}})
+    WHERE NOT (s)-[:TAKE]->(c)
     CREATE UNIQUE (s)-[:PIN]->(c)
+    RETURN s
 """
 
 # 과목 핀 취소
 QUERY_UNPIN_COURSE = """
     MATCH (:Student {studentID: {studentID}})-[p:PIN]->(:Course {number: {number}, subtitle: {subtitle}})
+    WITH p, ID(p) as i
     DELETE p
+    RETURN i
 """
 
 # 수강한 과목
 QUERY_TAKE_COURSES = """
     MATCH (:Student {studentID: {studentID}})-[t:TAKE]->(c:Course)
     RETURN t, c
-    ORDER BY t.semester, c.number
+    ORDER BY t.semester, c.number, c.name, c.subtitle
+"""
+
+QUERY_COLLABORATIVE_FILTERING = """
+    MATCH (s:Student {studentID: {studentID}})-[t:TAKE]->(:Course)
+    WITH s, (max(toInt(t.semester)) - min(toInt(t.semester)) + 2) as cur
+    MATCH (s)-[:TAKE]->(:Course)<-[:TAKE]-()-[t:TAKE]->(other:Course {type: {type}})
+    WHERE (NOT (s)-[:TAKE]->(other)) AND toInt(t.semester) > (cur - 2) AND toInt(t.semester) < (cur + 2)
+    WITH other, other.number as courseNumber, count(*) as cnt
+    MATCH (:Student)-[t:TAKE]->(:Course {number: courseNumber})
+    WITH other, cnt, round(avg(toInt(t.semester))) as avg
+    RETURN other.number, other.name, other.subtitle, avg, cnt
+    ORDER BY cnt DESC
 """
