@@ -4,13 +4,21 @@ from datetime import datetime
 QUERY_ALL_COURSES = """
     MATCH (c:Course)-[:HELD {{ year: {{year}}, term: {{term}} }}]->(l:Lecture)
     WHERE ({keyword}) AND ({departments}) AND ({course_levels})
-    RETURN c.number, c.name, c.subtitle, c.code, l.professor, l.division, l.grades, l.classTime, l.dropChange, l.limit
+    RETURN c.number, c.name, c.subtitle, c.code,
+           l.professor, l.division, l.averageGrade, l.classTime, l.spendTime, l.limit
     ORDER BY c.{sort_order}, l.division
 """
 
 # 현재 학기에 개설된 과목 중 핀 한 과목
 QUERY_PINNED_COURSES_THIS_TIME = """
     MATCH (:Student {studentID: {studentID}})-[:PIN]->(c:Course)-[:HELD {year: {year}, term: {term}}]->(:Lecture)
+    WITH DISTINCT c as d
+    RETURN d.number, d.subtitle
+    ORDER BY d.number
+"""
+
+QUERY_TAKE_COURSES_THIS_TIME = """
+    MATCH (:Student {studentID: {studentID}})-[:TAKE]->(c:Course)-[:HELD {year: {year}, term: {term}}]->(:Lecture)
     WITH DISTINCT c as d
     RETURN d.number, d.subtitle
     ORDER BY d.number
@@ -59,14 +67,6 @@ QUERY_AFTER_THIS_COURSE = """
     LIMIT 5
 """
 
-# 과목 디테일 쿼리 집합
-COURSE_DETAIL_QUERIES = {
-    "about": QUERY_ABOUT_THIS_COURSE,
-    "before": QUERY_BEFORE_THIS_COURSE,
-    "with": QUERY_WITH_THIS_COURSE,
-    "after": QUERY_AFTER_THIS_COURSE
-}
-
 # 핀 한 과목 전체
 QUERY_PINNED_COURSES = """
     MATCH (:Student {studentID: {studentID}})-[:PIN]->(c:Course)
@@ -95,8 +95,61 @@ QUERY_UNPIN_COURSE = """
 # 수강한 과목
 QUERY_TAKE_COURSES = """
     MATCH (:Student {studentID: {studentID}})-[t:TAKE]->(c:Course)
-    RETURN t, c
-    ORDER BY t.semester, c.number, c.name, c.subtitle
+    WITH t, c
+    MATCH (c)-[h:HELD]->(l:Lecture)
+    WHERE t.year = h.year AND t.term = h.term
+    WITH t, c, l
+    ORDER BY l.division
+    RETURN t, c, collect(l) as lectures
+    ORDER BY t.semester, c.number, c.subtitle
+"""
+
+QUERY_PLANNED_COURSES = """
+    MATCH (:Student {studentID: {studentID}})-[p:PLAN]->(c:Course)
+    WITH p, c MATCH (c)-[h:HELD]->(l:Lecture)
+    WHERE 2018 = h.year AND 'Fall' = h.term
+    WITH p, c, l
+    ORDER BY l.division
+    RETURN p, c, collect(l) as lectures
+    ORDER BY p.semester, c.number, c.subtitle
+"""
+
+QUERY_COURSES_IN_BOARD = """
+    MATCH (:Student {studentID: {studentID}})-[t:TAKE]->(c:Course)
+    WITH t, c
+    MATCH (c)-[h:HELD]->(l:Lecture)
+    WHERE t.year = h.year AND t.term = h.term
+    WITH t, c, l
+    ORDER BY l.division
+    RETURN type(t) as type, t.semester as semester, t.division as division, t.grade as grade, c, collect(l) as lectures
+    ORDER BY t.semester, c.number, c.subtitle
+    UNION
+    MATCH (:Student {studentID: {studentID}})-[p:PLAN]->(c:Course)
+    WITH p, c MATCH (c)-[h:HELD]->(l:Lecture)
+    WHERE 2018 = h.year AND 'Fall' = h.term
+    WITH p, c, l
+    ORDER BY l.division
+    RETURN type(p) as type, p.semester as semester, p.division as division, p.grade as grade, c, collect(l) as lectures
+    ORDER BY p.semester, c.number, c.subtitle
+"""
+
+QUERY_PLAN_COURSE = """
+    MATCH (s:Student {studentID: {studentID}})
+    WITH s
+    MATCH (c:Course {number: {number}, subtitle: {subtitle}})
+    WHERE NOT (s)-[:TAKE]->(c)
+    MERGE (s)-[p:PLAN]->(c)
+    SET p.semester = {to}
+    RETURN p
+"""
+
+QUERY_UNPLAN_COURSE = """
+    MATCH (s:Student {studentID: {studentID}})
+    WITH s
+    MATCH (s)-[p:PLAN]->(:Course {number: {number}, subtitle: {subtitle}})
+    WITH p, ID(p) as i
+    DELETE p
+    RETURN i
 """
 
 QUERY_COLLABORATIVE_FILTERING = """
@@ -110,3 +163,27 @@ QUERY_COLLABORATIVE_FILTERING = """
     RETURN other.number, other.name, other.subtitle, avg, cnt
     ORDER BY cnt DESC
 """
+
+# 트렌드한 과목
+
+# 현재 학기에 학생들이 많이 들은 과목
+
+# 새로운 강의, 혹은 새로운 교수님 (1년 내)
+QUERY_NEW_COURSE = """
+    MATCH (l:Lecture {year: 2018, term: 'Fall'})
+    WHERE (NOT (l)-[:PREVIOUS]->()) AND (NOT (l)<-[:WITH]-()-[:PREVIOUS]->())
+    RETURN l
+"""
+
+QUERY_NEW_LECTURE = """
+    MATCH (l:Lecture {year: 2018, term: 'Fall'})
+    WHERE (NOT (l)-[:PREVIOUS]->()) AND (NOT (l)<-[:WITH]-()-[:PREVIOUS]->())
+    WITH l, collect(l) as coll
+    MATCH (p)<-[h0:HELD]-(:Course)-[h1:HELD]->()
+    WHERE p IN coll AND (h0.year <> h1.year OR h0.term <> h1.term)
+    RETURN l.name, DISTINCT p.name;
+"""
+
+# 커리큘럼
+
+# 수강 시기
