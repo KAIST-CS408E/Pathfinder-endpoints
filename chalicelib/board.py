@@ -1,4 +1,4 @@
-from chalicelib.response.board_data import BoardData
+from chalicelib.responses.board_data import BoardData
 from chalicelib.helpers.request import gather_responses
 from chalicelib.helpers.queries import QUERY_COURSES_IN_BOARD
 
