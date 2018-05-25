@@ -66,8 +66,6 @@ class BoardData:
 
     @property
     def serialize(self):
-        import pprint
-        pprint.pprint(self.board_data)
         return {
             "boardData": self.board_data,
             "currentSemester": self.current_semester
