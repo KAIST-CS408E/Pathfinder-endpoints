@@ -1,12 +1,13 @@
 from chalice import Chalice
 
-from chalicelib.overall import generate_overall
-from chalicelib.detail import generate_detail
+from chalicelib import board
 from chalicelib import pin
 from chalicelib import plan
-from chalicelib.recommend import recommend
-from chalicelib import board
+from chalicelib import relevance
 from chalicelib import statistics
+from chalicelib.detail import generate_detail
+from chalicelib.overall import generate_overall
+from chalicelib.recommend import recommend
 
 app = Chalice(app_name='cs408e-endpoints')
 
@@ -99,7 +100,7 @@ def get_statistics():
 def get_relevance():
     request = app.current_request
     student_id = _get_authorized_student_id(request)
-    return {student_id: "Hi"}
+    return relevance.get_relevance_data(student_id)
 
 
 # Helper: 토큰

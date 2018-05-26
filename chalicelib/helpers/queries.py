@@ -6,8 +6,8 @@ def __get_current_year():
 
 
 def __get_next_semester():
-    # TODO
-    return (2018, "Fall")
+    # TODO: Not hard coding
+    return 2018, "Fall"
 
 
 # 전체 개설 과목
@@ -218,9 +218,27 @@ QUERY_COLLABORATIVE_FILTERING = """
     ORDER BY cnt DESC
 """
 
-# 트렌드한 과목
+# TODO: 트렌드한 과목
 
-# 현재 학기에 학생들이 많이 들은 과목
+# 다른 학생들이 평균적으로 이번 학기에 들은 과목들
+QUERY_SIMILAR_STUDENT_TAKES = """
+    MATCH (s:Student {studentID: {studentID}})-[t:TAKE]->(:Course)
+    WITH s, max(t.semester) + 1 as next_semester
+    MATCH (c:Course)-[:HELD {year: %d, term: '%s'}]->(:Lecture)
+    WHERE NOT (s)-[:TAKE]->(c)
+    WITH c, next_semester
+    MATCH (:Student)-[t:TAKE]->(c)
+    WITH c, next_semester, round(avg(t.semester)) as avg, count(*) as cnt
+    MATCH (c) WHERE avg IN
+        CASE
+            WHEN toInt(substring(reverse(c.number), 2, 1)) >= 5 THEN range(next_semester - 9, next_semester - 7)
+            WHEN next_semester > 8 THEN range(7, 9)
+            ELSE range(next_semester - 1, next_semester + 1)
+        END
+    RETURN c.number, c.name, c.type, cnt
+    ORDER BY cnt DESC
+    LIMIT 7
+""" % __get_next_semester()
 
 # 새로운 강의, 혹은 새로운 교수님 (1년 내)
 QUERY_NEW_COURSE_OR_LECTURE = """
@@ -230,6 +248,5 @@ QUERY_NEW_COURSE_OR_LECTURE = """
     RETURN c.number, c.subtitle, c.name, l.professor, fresh
 """ % __get_next_semester()
 
-# 커리큘럼
+# TODO: 검색 히스토리 기반 커리큘럼 추천
 
-# 수강 시기
