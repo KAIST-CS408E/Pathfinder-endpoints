@@ -1,5 +1,15 @@
 from datetime import datetime
 
+
+def __get_current_year():
+    return datetime.now().year
+
+
+def __get_next_semester():
+    # TODO
+    return (2018, "Fall")
+
+
 # 전체 개설 과목
 QUERY_ALL_COURSES = """
     MATCH (c:Course)-[:HELD {{ year: {{year}}, term: {{term}} }}]->(l:Lecture)
@@ -39,7 +49,7 @@ QUERY_ABOUT_THIS_COURSE = """
     END as termOrder
     RETURN c, l
     ORDER BY l.year DESC, termOrder DESC, l.professor ASC
-""" % datetime.now().year
+""" % __get_current_year()
 
 # 정책상 선수/후수 과목
 QUERY_REQUISITE_OF_THIS_COURSE = """
@@ -136,16 +146,16 @@ QUERY_COURSES_IN_BOARD = """
     UNION
     MATCH (:Student {studentID: {studentID}})-[p:PLAN]->(c:Course)
     WITH p, c MATCH (c)-[h:HELD]->(l:Lecture)
-    WHERE 2018 = h.year AND 'Fall' = h.term
+    WHERE h.year = %d AND h.term = '%s'
     WITH p, c, l
     ORDER BY l.division
     RETURN type(p) as type, p.semester as semester, p.division as division, p.grade as grade, c, collect(l) as lectures
     ORDER BY p.semester, c.number, c.subtitle
-"""
+""" % __get_next_semester()
 
 
 # 현재 학기 이후 모든 과목
-QUERY_FURTHER_COURSES_IN_BOARD = """
+QUERY_VALIDATE_BOARD = """
     MATCH (s:Student {studentID: {studentID}})-[t:TAKE]->(:Course)
     WITH s, max(t.semester) as current_semester
     MATCH (s)-[t:TAKE]->(c:Course)
@@ -155,17 +165,24 @@ QUERY_FURTHER_COURSES_IN_BOARD = """
     WHERE t.year = h.year AND t.term = h.term
     WITH t, c, l
     ORDER BY l.division
-    RETURN type(t) as type, t.semester as semester, t.division as division, t.grade as grade, c, collect(l) as lectures
-    ORDER BY t.semester, c.number, c.subtitle
+    WITH type(t) as type, t.semester as semester, t.division as division, t.grade as grade,
+           c, collect(l) as lectures
+    OPTIONAL MATCH (c)-[:PREREQUISITE*]->(pre:Course)
+    RETURN type, semester, division, grade, c, lectures, collect(pre) as prerequisites
+    ORDER BY semester, c.number, c.subtitle
     UNION
     MATCH (:Student {studentID: {studentID}})-[p:PLAN]->(c:Course)
-    WITH p, c MATCH (c)-[h:HELD]->(l:Lecture)
-    WHERE 2018 = h.year AND 'Fall' = h.term
+    WITH p, c
+    MATCH (c)-[h:HELD]->(l:Lecture)
+    WHERE h.year = %d AND h.term = '%s'
     WITH p, c, l
     ORDER BY l.division
-    RETURN type(p) as type, p.semester as semester, p.division as division, p.grade as grade, c, collect(l) as lectures
-    ORDER BY p.semester, c.number, c.subtitle
-"""
+    WITH type(p) as type, p.semester as semester, p.division as division, p.grade as grade,
+           c, collect(l) as lectures
+    OPTIONAL MATCH (c)-[:PREREQUISITE*]->(pre:Course)
+    RETURN type, semester, division, grade, c, lectures, collect(pre) as prerequisites
+    ORDER BY semester, c.number, c.subtitle
+""" % __get_next_semester()
 
 # 과목 수강 예정 설정
 QUERY_PLAN_COURSE = """
@@ -191,9 +208,9 @@ QUERY_UNPLAN_COURSE = """
 # 과목 추천 1: Collaborative Filtering
 QUERY_COLLABORATIVE_FILTERING = """
     MATCH (s:Student {studentID: {studentID}})-[t:TAKE]->(:Course)
-    WITH s, (max(toInt(t.semester)) - min(toInt(t.semester)) + 2) as cur
+    WITH s, (max(t.semester) - min(t.semester) + 2) as cur
     MATCH (s)-[:TAKE]->(:Course)<-[:TAKE]-()-[t:TAKE]->(other:Course {type: {type}})
-    WHERE (NOT (s)-[:TAKE]->(other)) AND toInt(t.semester) > (cur - 2) AND toInt(t.semester) < (cur + 2)
+    WHERE (NOT (s)-[:TAKE]->(other)) AND t.semester > (cur - 2) AND t.semester < (cur + 2)
     WITH other, other.number as courseNumber, count(*) as cnt
     MATCH (:Student)-[t:TAKE]->(:Course {number: courseNumber})
     WITH other, cnt, round(avg(toInt(t.semester))) as avg

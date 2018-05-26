@@ -6,6 +6,7 @@ from datetime import datetime
 class BoardData:
     board_data = None
     current_semester = 0
+    prerequisites = {}
 
     def __init__(self, data):
         self.board_data = OrderedDict()
@@ -17,17 +18,15 @@ class BoardData:
             grade = d[3]
             course = d[4]["data"]
             lectures = [l["data"] for l in d[5]]
-
             if semester not in self.board_data.keys():
                 self.board_data[semester] = {"courses": [], "feedback": []}
+                self.prerequisites[semester] = {}
 
             self.board_data[semester]["courses"].append(self.course_data(course, rel_type, division, grade, lectures))
             if rel_type == 'TAKE':
                 self.current_semester = max(semester, self.current_semester)
-
-        # # Feedback (Validation)
-        # for semester, data in self.board_data.items():
-        #     self.board_data[semester]["feedback"] = self.feedback_data(data)
+            if len(d) == 7:
+                self.prerequisites[semester][course["number"]] = [p["data"]["number"] for p in d[6]]
 
     @staticmethod
     def course_data(course, rel_type, division, grade, lectures):
@@ -52,17 +51,15 @@ class BoardData:
         data["myGrade"] = grade
         return data
 
-    def validate(self):
+    def validate(self, taken_courses):
         ret = {}
         for semester, data in self.board_data.items():
-            ret[semester] = self.feedback_data(data)
+            ret[semester] = self.feedback_data(semester, data, taken_courses)
         return ret
 
-    @staticmethod
-    def feedback_data(data):
+    def feedback_data(self, semester, data, taken_courses):
         def validate_time():
-            overlap_msg = "%s and %s class times are overlapped."
-            feedback = {"type": "time", "ok": True, "reason": ""}
+            feedback = {"type": "time", "ok": True, "reason": {}}
 
             def is_time_overlap(a, b):
                 class_time_format = "%H:%M"
@@ -101,16 +98,26 @@ class BoardData:
                         conflict = True
                 if conflict:
                     feedback["ok"] = False
-                    feedback["reason"] += overlap_msg % (a["courseNumber"], b["courseNumber"])
+                    feedback["reason"][a["courseNumber"]] = b["courseNumber"]
 
             return feedback
 
         def validate_prerequisite():
-            return {
-                "type": "prerequisite",  # prerequisite | time
+            feedback = {
+                "type": "prerequisite",
                 "ok": True,
-                "reason": "You are always okay."
+                "reason": {}
             }
+            taken_course_numbers = list(map(lambda e: e[0], taken_courses))
+            for course, prerequisites in self.prerequisites[semester].items():
+                if prerequisites:
+                    feedback["reason"][course] = {}
+                for prerequisite in prerequisites:
+                    is_okay = prerequisite in taken_course_numbers
+                    feedback["reason"][course][prerequisite] = is_okay
+                    feedback["ok"] |= is_okay
+
+            return feedback
 
         return [validate_time(), validate_prerequisite()]
 
