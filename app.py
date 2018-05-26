@@ -95,12 +95,21 @@ def get_statistics():
     return statistics.get_statistics(student_id)
 
 
-# GET: 다른 학생들이 지금 학기에 듣는 과목 (전필, 전선), 검색 히스토리 기반 과목 제안
+# GET: 다른 학생들이 지금 학기에 듣는 과목 (전필, 전선)
 @app.route('/relevance', cors=True)
 def get_relevance():
     request = app.current_request
     student_id = _get_authorized_student_id(request)
     return relevance.get_relevance_data(student_id)
+
+
+# GET: 검색 히스토리 기반 과목 제안
+@app.route('/history', cors=True)
+def get_area_by_search_history():
+    request = app.current_request
+    student_id = _get_authorized_student_id(request)
+    history = request.headers["cookie"].split(";")[0]
+    return relevance.get_recommend_curriculum(student_id, history)
 
 
 # Helper: 토큰
