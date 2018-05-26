@@ -48,7 +48,7 @@ QUERY_ABOUT_THIS_COURSE = """
       ELSE 4
     END as termOrder
     RETURN c, l
-    ORDER BY l.year DESC, termOrder DESC, l.professor ASC
+    ORDER BY l.year DESC, termOrder DESC, l.division ASC
 """ % __get_current_year()
 
 # 정책상 선수/후수 과목
@@ -223,20 +223,12 @@ QUERY_COLLABORATIVE_FILTERING = """
 # 현재 학기에 학생들이 많이 들은 과목
 
 # 새로운 강의, 혹은 새로운 교수님 (1년 내)
-QUERY_NEW_COURSE = """
-    MATCH (l:Lecture {year: 2018, term: 'Fall'})
-    WHERE (NOT (l)-[:PREVIOUS]->()) AND (NOT (l)<-[:WITH]-()-[:PREVIOUS]->())
-    RETURN l
-"""
-
-QUERY_NEW_LECTURE = """
-    MATCH (l:Lecture {year: 2018, term: 'Fall'})
-    WHERE (NOT (l)-[:PREVIOUS]->()) AND (NOT (l)<-[:WITH]-()-[:PREVIOUS]->())
-    WITH l, collect(l) as coll
-    MATCH (p)<-[h0:HELD]-(:Course)-[h1:HELD]->()
-    WHERE p IN coll AND (h0.year <> h1.year OR h0.term <> h1.term)
-    RETURN l.name, DISTINCT p.name;
-"""
+QUERY_NEW_COURSE_OR_LECTURE = """
+    MATCH (c:Course)-[:HELD {year: %d, term: '%s'}]->(l:Lecture)
+    WHERE NOT ( (:Lecture)<-[:WITH *0..]-(:Lecture)-[:NEXT]->(l) OR (:Lecture)-[:WITH]->(l) )
+    WITH c, l, NOT exists((l)<-[:HELD]-(:Course)-[:HELD]->()) as fresh
+    RETURN c.number, c.subtitle, c.name, l.professor, fresh
+""" % __get_next_semester()
 
 # 커리큘럼
 

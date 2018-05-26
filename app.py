@@ -6,6 +6,7 @@ from chalicelib import pin
 from chalicelib import plan
 from chalicelib.recommend import recommend
 from chalicelib import board
+from chalicelib import statistics
 
 app = Chalice(app_name='cs408e-endpoints')
 
@@ -85,9 +86,17 @@ def change_planned_status(course_number):
     return plan.change_planned_status(student_id, course_number, subtitle, to, division)
 
 
-# GET: 트랜드 과목, 새로운 과목/수업(교수님), 지금 학기에 듣는 과목 (전필, 전선),
-@app.route('/rank', cors=True)
-def a():
+# GET: 현재 학기 개설되는 과목 중 (트랜드), 신설 과목 또는 수업(교수님)
+@app.route('/statistics', cors=True)
+def get_statistics():
+    request = app.current_request
+    student_id = _get_authorized_student_id(request)
+    return statistics.get_statistics(student_id)
+
+
+# GET: 다른 학생들이 지금 학기에 듣는 과목 (전필, 전선), 검색 히스토리 기반 과목 제안
+@app.route('/relevance', cors=True)
+def get_relevance():
     request = app.current_request
     student_id = _get_authorized_student_id(request)
     return {student_id: "Hi"}
