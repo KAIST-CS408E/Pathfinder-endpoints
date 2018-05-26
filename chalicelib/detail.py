@@ -1,6 +1,6 @@
 from chalicelib.helpers.request import gather_responses
 from chalicelib.helpers.queries import QUERY_ABOUT_THIS_COURSE, QUERY_BEFORE_THIS_COURSE, \
-    QUERY_WITH_THIS_COURSE, QUERY_AFTER_THIS_COURSE
+    QUERY_WITH_THIS_COURSE, QUERY_AFTER_THIS_COURSE, QUERY_REQUISITE_OF_THIS_COURSE
 
 
 def generate_detail(course_number, subtitle, student_id):
@@ -8,7 +8,8 @@ def generate_detail(course_number, subtitle, student_id):
         "about": QUERY_ABOUT_THIS_COURSE,
         "before": QUERY_BEFORE_THIS_COURSE,
         "with": QUERY_WITH_THIS_COURSE,
-        "after": QUERY_AFTER_THIS_COURSE
+        "after": QUERY_AFTER_THIS_COURSE,
+        "requisite": QUERY_REQUISITE_OF_THIS_COURSE
     }
     params = {"courseNumber": course_number, "subtitle": subtitle}
     res = gather_responses(student_id, queries, params)

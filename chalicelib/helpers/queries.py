@@ -1,6 +1,6 @@
 from datetime import datetime
 
-# 개설 과목
+# 전체 개설 과목
 QUERY_ALL_COURSES = """
     MATCH (c:Course)-[:HELD {{ year: {{year}}, term: {{term}} }}]->(l:Lecture)
     WHERE ({keyword}) AND ({departments}) AND ({course_levels})
@@ -17,6 +17,7 @@ QUERY_PINNED_COURSES_THIS_TIME = """
     ORDER BY d.number
 """
 
+# 현재 학기에 개설된 과목 중 수강 한 과목
 QUERY_TAKE_COURSES_THIS_TIME = """
     MATCH (:Student {studentID: {studentID}})-[:TAKE]->(c:Course)-[:HELD {year: {year}, term: {term}}]->(:Lecture)
     WITH DISTINCT c as d
@@ -27,7 +28,7 @@ QUERY_TAKE_COURSES_THIS_TIME = """
 # 과목 디테일
 QUERY_ABOUT_THIS_COURSE = """
     MATCH (c:Course {number: {courseNumber}, subtitle: {subtitle}})-[h:HELD]->(l:Lecture)
-    WHERE %s - toInt(h.year) < 5
+    WHERE %s - h.year < 5
     WITH c, l,
     CASE l.term
       WHEN 'Spring' THEN 0
@@ -40,19 +41,30 @@ QUERY_ABOUT_THIS_COURSE = """
     ORDER BY l.year DESC, termOrder DESC, l.professor ASC
 """ % datetime.now().year
 
+# 정책상 선수/후수 과목
+QUERY_REQUISITE_OF_THIS_COURSE = """
+    MATCH (:Course {number: {courseNumber}, subtitle: {subtitle}})-[r:PREREQUISITE*]->(c:Course)
+    RETURN type(head(r)) as t, c.number, c.name, c.subtitle
+    ORDER BY c.number
+    UNION
+    MATCH (:Course {number: {courseNumber}, subtitle: {subtitle}})-[r:POSTREQUISITE]->(c:Course)
+    RETURN type(r) as t, c.number, c.name, c.subtitle
+    ORDER BY c.number
+"""
+
 # 같이 듣는 과목
 QUERY_WITH_THIS_COURSE = """
     MATCH (:Course {number: {courseNumber}, subtitle: {subtitle}})<-[t1:TAKE]-(:Student)-[t2:TAKE]->(n:Course)
-    WHERE toInt(t1.semester) = toInt(t2.semester)
+    WHERE t1.semester = t2.semester
     RETURN n.number, n.name, n.subtitle, count(*) as cnt
     ORDER BY cnt DESC
     LIMIT 5
 """
 
-# 선수 과목들
+# 직전 과목들
 QUERY_BEFORE_THIS_COURSE = """
     MATCH (n:Course)<-[t1:TAKE]-(:Student)-[t2:TAKE]->(:Course {number: {courseNumber}, subtitle: {subtitle}})
-    WHERE toInt(t1.semester) < toInt(t2.semester)
+    WHERE t1.semester = t2.semester + 1
     RETURN n.number, n.name, n.subtitle, count(*) as cnt
     ORDER BY cnt DESC
     LIMIT 5
@@ -61,7 +73,7 @@ QUERY_BEFORE_THIS_COURSE = """
 # 직후 과목들
 QUERY_AFTER_THIS_COURSE = """
     MATCH (:Course {number: {courseNumber}, subtitle: {subtitle}})<-[t1:TAKE]-(:Student)-[t2:TAKE]->(n:Course)
-    WHERE toInt(t1.semester) + 1 = toInt(t2.semester)
+    WHERE t1.semester + 1 = t2.semester
     RETURN n.number, n.name, n.subtitle, count(*) as cnt
     ORDER BY cnt DESC
     LIMIT 5
@@ -74,7 +86,7 @@ QUERY_PINNED_COURSES = """
     ORDER BY c.number
 """
 
-# 과목 핀
+# 과목 핀 설정
 QUERY_PIN_COURSE = """
     MATCH (s:Student {studentID: {studentID}})
     WITH s
@@ -94,16 +106,13 @@ QUERY_UNPIN_COURSE = """
 
 # 수강한 과목
 QUERY_TAKE_COURSES = """
-    MATCH (:Student {studentID: {studentID}})-[t:TAKE]->(c:Course)
-    WITH t, c
-    MATCH (c)-[h:HELD]->(l:Lecture)
-    WHERE t.year = h.year AND t.term = h.term
-    WITH t, c, l
-    ORDER BY l.division
-    RETURN t, c, collect(l) as lectures
-    ORDER BY t.semester, c.number, c.subtitle
+    MATCH (:Student {studentID: {studentID}})-[:TAKE]->(c:Course)
+    WITH DISTINCT c as d
+    RETURN d.number, d.subtitle, d.type
+    ORDER BY d.number
 """
 
+# 이후 학기에 수강할 예정인 과목
 QUERY_PLANNED_COURSES = """
     MATCH (:Student {studentID: {studentID}})-[p:PLAN]->(c:Course)
     WITH p, c MATCH (c)-[h:HELD]->(l:Lecture)
@@ -114,6 +123,7 @@ QUERY_PLANNED_COURSES = """
     ORDER BY p.semester, c.number, c.subtitle
 """
 
+# 커리큘럼 보드에 올라갈 모든 과목
 QUERY_COURSES_IN_BOARD = """
     MATCH (:Student {studentID: {studentID}})-[t:TAKE]->(c:Course)
     WITH t, c
@@ -133,16 +143,42 @@ QUERY_COURSES_IN_BOARD = """
     ORDER BY p.semester, c.number, c.subtitle
 """
 
+
+# 현재 학기 이후 모든 과목
+QUERY_FURTHER_COURSES_IN_BOARD = """
+    MATCH (s:Student {studentID: {studentID}})-[t:TAKE]->(:Course)
+    WITH s, max(t.semester) as current_semester
+    MATCH (s)-[t:TAKE]->(c:Course)
+    WHERE t.semester = current_semester
+    WITH t, c
+    MATCH (c)-[h:HELD]->(l:Lecture)
+    WHERE t.year = h.year AND t.term = h.term
+    WITH t, c, l
+    ORDER BY l.division
+    RETURN type(t) as type, t.semester as semester, t.division as division, t.grade as grade, c, collect(l) as lectures
+    ORDER BY t.semester, c.number, c.subtitle
+    UNION
+    MATCH (:Student {studentID: {studentID}})-[p:PLAN]->(c:Course)
+    WITH p, c MATCH (c)-[h:HELD]->(l:Lecture)
+    WHERE 2018 = h.year AND 'Fall' = h.term
+    WITH p, c, l
+    ORDER BY l.division
+    RETURN type(p) as type, p.semester as semester, p.division as division, p.grade as grade, c, collect(l) as lectures
+    ORDER BY p.semester, c.number, c.subtitle
+"""
+
+# 과목 수강 예정 설정
 QUERY_PLAN_COURSE = """
     MATCH (s:Student {studentID: {studentID}})
     WITH s
     MATCH (c:Course {number: {number}, subtitle: {subtitle}})
     WHERE NOT (s)-[:TAKE]->(c)
     MERGE (s)-[p:PLAN]->(c)
-    SET p.semester = {to}
+    SET p.semester = {to}, p.division = {division}
     RETURN p
 """
 
+# 과목 수강 예정 취소
 QUERY_UNPLAN_COURSE = """
     MATCH (s:Student {studentID: {studentID}})
     WITH s
@@ -152,6 +188,7 @@ QUERY_UNPLAN_COURSE = """
     RETURN i
 """
 
+# 과목 추천 1: Collaborative Filtering
 QUERY_COLLABORATIVE_FILTERING = """
     MATCH (s:Student {studentID: {studentID}})-[t:TAKE]->(:Course)
     WITH s, (max(toInt(t.semester)) - min(toInt(t.semester)) + 2) as cur

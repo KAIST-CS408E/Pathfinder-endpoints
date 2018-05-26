@@ -5,7 +5,7 @@ from chalicelib.detail import generate_detail
 from chalicelib import pin
 from chalicelib import plan
 from chalicelib.recommend import recommend
-from chalicelib.board import get_board_data
+from chalicelib import board
 
 app = Chalice(app_name='cs408e-endpoints')
 
@@ -52,7 +52,23 @@ def change_pinned_status(course_number):
 def get_board():
     request = app.current_request
     student_id = _get_authorized_student_id(request)
-    return get_board_data(student_id)
+    return board.get_board_data(student_id)
+
+
+# GET: 칸반 보드 학기별 데이터
+@app.route('/board/simulate', cors=True)
+def get_board():
+    request = app.current_request
+    student_id = _get_authorized_student_id(request)
+    return board.simulate_further_semesters(student_id)
+
+
+# GET: 과목 추천
+@app.route('/board/recommend', cors=True)
+def recommend_courses():
+    request = app.current_request
+    student_id = _get_authorized_student_id(request)
+    return recommend(student_id)
 
 
 # POST | DELETE: 과목 PLAN 추가 / 제거
@@ -64,16 +80,9 @@ def change_planned_status(course_number):
     subtitle = query_params.pop("subtitle", "")
     to = int(query_params.pop("to")) if request.method == 'POST' else None
     assert not to or (1 <= to <= 12)
+    division = query_params.pop("division", None) if request.method == 'POST' else None
 
-    return plan.change_planned_status(student_id, course_number, subtitle, to)
-
-
-# GET: 과목 추천
-@app.route('/recommend', cors=True)
-def recommend_courses():
-    request = app.current_request
-    student_id = _get_authorized_student_id(request)
-    return recommend(student_id)
+    return plan.change_planned_status(student_id, course_number, subtitle, to, division)
 
 
 # GET: 트랜드 과목, 새로운 과목/수업(교수님), 지금 학기에 듣는 과목 (전필, 전선),
