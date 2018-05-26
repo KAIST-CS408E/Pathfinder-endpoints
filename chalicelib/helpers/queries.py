@@ -219,6 +219,8 @@ QUERY_COLLABORATIVE_FILTERING = """
 """
 
 # TODO: 트렌드한 과목
+QUERY_TRENDY_COURSES = """
+"""
 
 # 다른 학생들이 평균적으로 이번 학기에 들은 과목들
 QUERY_SIMILAR_STUDENT_TAKES = """
@@ -247,6 +249,4 @@ QUERY_NEW_COURSE_OR_LECTURE = """
     WITH c, l, NOT exists((l)<-[:HELD]-(:Course)-[:HELD]->()) as fresh
     RETURN c.number, c.subtitle, c.name, l.professor, fresh
 """ % __get_next_semester()
-
-# TODO: 검색 히스토리 기반 커리큘럼 추천
 
