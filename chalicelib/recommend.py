@@ -14,12 +14,12 @@ def recommend(student_id):
     return {"area": recommended_area, "cf": res["recommend"]}
 
 
-def curriculum(taken_courses):
+def curriculum(courses, include_required=False):
     def __get_course_numbers(courses):
-        return list(map(lambda e: e[0], filter(lambda e: e[2] == "Major Elective", courses)))
+        return list(map(lambda e: e[0], filter(lambda e: include_required or e[2] == "Major Elective", courses)))
 
     def __get_special_topics(courses):
-        return list(map(lambda e: e[1], filter(lambda e: e[2] == "Major Elective", courses)))
+        return list(map(lambda e: e[1], filter(lambda e: include_required or e[2] == "Major Elective", courses)))
 
     match = {}
     score = {}
@@ -29,13 +29,13 @@ def curriculum(taken_courses):
         for area, value in areas.items():
             match_point = 0
             # 일반 과목
-            taken_course_numbers = __get_course_numbers(taken_courses)
+            taken_course_numbers = __get_course_numbers(courses)
             for course_number in value["curriculum"]:
                 if course_number in taken_course_numbers:
                     course_level = int(course_number[-3])
                     match_point += course_level
             # 특강
-            taken_special_topics = __get_special_topics(taken_courses)
+            taken_special_topics = __get_special_topics(courses)
             for special_topic in value.get("underGraduatedSpecialTopics", []):
                 if special_topic in taken_special_topics:
                     match_point += 4

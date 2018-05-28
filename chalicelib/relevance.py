@@ -10,8 +10,8 @@ def get_relevance_data(student_id):
 
 
 def get_recommend_curriculum(student_id, history):
-    res = gather_responses(student_id, {"take": QUERY_TAKE_COURSES})
-    taken_courses = set(tuple(c) for c in res["take"])
+    # res = gather_responses(student_id, {"take": QUERY_TAKE_COURSES})
+    # taken_courses = set(tuple(c) for c in res["take"])
     searched_courses = set(tuple(c) for c in json.loads(history))
-    all_relative_courses = taken_courses.union(searched_courses)
-    return curriculum(list(all_relative_courses))
+    # all_relative_courses = taken_courses.union(searched_courses)
+    return curriculum(list(searched_courses), include_required=True)

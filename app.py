@@ -108,7 +108,7 @@ def get_relevance():
 def get_area_by_search_history():
     request = app.current_request
     student_id = _get_authorized_student_id(request)
-    history = request.headers["cookie"].split(";")[0]
+    history = request.headers.get('cookie', '[]').split(";")[0]
     return relevance.get_recommend_curriculum(student_id, history)
 
 

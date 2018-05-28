@@ -8,6 +8,7 @@ def generate_overall(year, term, search_filter, student_id):
         "take": QUERY_TAKE_COURSES_THIS_TIME,
         "pinned": QUERY_PINNED_COURSES_THIS_TIME
     }
+    print(queries["all"])
     params = {"year": int(year), "term": term}
     res = gather_responses(student_id, queries, params)
 
@@ -59,14 +60,22 @@ def __generate_search_query(search_filter):
 
 
 def __generate_body(data):
+    def __get_median(lst):
+        if not lst:
+            return None
+        order = ["< 1", "1 to 3", "3 to 5", "5 to 7", "> 7"]
+        sorted_lst = sorted(lst, key=lambda e: order.index(e))
+        index = len(lst) // 2
+        return sorted_lst[index]
+
     res = []
     for lecture in data:
         info = {
             "professor": lecture[4],
             "division": lecture[5],
-            "grades": lecture[6],
+            "grades": lecture[6] if lecture[6] else lecture[-2],
             "classTime": lecture[7],
-            "load": lecture[8],
+            "load": lecture[8] if lecture[8] else __get_median(lecture[-1]),
             "limit": lecture[9]
         }
 

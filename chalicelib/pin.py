@@ -3,8 +3,16 @@ from chalicelib.helpers.queries import QUERY_PIN_COURSE, QUERY_UNPIN_COURSE, QUE
 
 
 def get_pinned_courses(student_id):
-    r = gather_responses(student_id, {"result": QUERY_PINNED_COURSES}, {})
-    return r["result"]
+    ret = []
+    key = ["courseNumber", "name", "subtitle"]
+    r = gather_responses(student_id, {"result": QUERY_PINNED_COURSES})
+    for pinned in r["result"]:
+        res = {}
+        for idx, k in enumerate(key):
+            res[k] = pinned[idx]
+        res["lectures"] = [l["data"] for l in pinned[-1]]
+        ret.append(res)
+    return ret
 
 
 def change_pinned_status(student_id, course_number, subtitle, is_pin):

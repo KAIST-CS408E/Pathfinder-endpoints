@@ -14,9 +14,15 @@ def __get_next_semester():
 QUERY_ALL_COURSES = """
     MATCH (c:Course)-[:HELD {{ year: {{year}}, term: {{term}} }}]->(l:Lecture)
     WHERE ({keyword}) AND ({departments}) AND ({course_levels})
+    WITH c, l
+    OPTIONAL MATCH (l)<-[:WITH *0..]-(:Lecture)<-[:NEXT *0..2]-(p:Lecture)
+    OPTIONAL MATCH (p)-[:WITH]->(w:Lecture)
+    WITH c, l, collect(p) as a, collect(w) as b
+    UNWIND (a + b) as recent
     RETURN c.number, c.name, c.subtitle, c.code,
-           l.professor, l.division, l.averageGrade, l.classTime, l.spendTime, l.limit
-    ORDER BY c.{sort_order}, l.division
+           l.professor, l.division, l.averageGrade, l.classTime, l.spendTime, l.limit,
+           round(10.0 * avg(recent.averageGrade)) / 10.0 as recentGrade, collect(recent.spendTime) as recentSpendTime
+    ORDER BY c.number, l.division
 """
 
 # 현재 학기에 개설된 과목 중 핀 한 과목
@@ -74,7 +80,7 @@ QUERY_WITH_THIS_COURSE = """
 # 직전 과목들
 QUERY_BEFORE_THIS_COURSE = """
     MATCH (n:Course)<-[t1:TAKE]-(:Student)-[t2:TAKE]->(:Course {number: {courseNumber}, subtitle: {subtitle}})
-    WHERE t1.semester = t2.semester + 1
+    WHERE t1.semester + 1 = t2.semester
     RETURN n.number, n.name, n.subtitle, count(*) as cnt
     ORDER BY cnt DESC
     LIMIT 5
@@ -91,10 +97,10 @@ QUERY_AFTER_THIS_COURSE = """
 
 # 핀 한 과목 전체
 QUERY_PINNED_COURSES = """
-    MATCH (:Student {studentID: {studentID}})-[:PIN]->(c:Course)
-    RETURN c.number, c.name, c.subtitle
+    MATCH (:Student {studentID: {studentID}})-[:PIN]->(c:Course)-[:HELD {year: %d, term: '%s'}]-(l:Lecture)
+    RETURN c.number, c.name, c.subtitle, collect(l)
     ORDER BY c.number
-"""
+""" % __get_next_semester()
 
 # 과목 핀 설정
 QUERY_PIN_COURSE = """
@@ -250,3 +256,14 @@ QUERY_NEW_COURSE_OR_LECTURE = """
     RETURN c.number, c.subtitle, c.name, l.professor, fresh
 """ % __get_next_semester()
 
+
+"""
+MATCH (other:Student)
+WHERE ALL(c IN prev_courses | WHERE (other)-[:TAKE]-(c)) AND ALL(c IN curr_courses | WHERE (other)-[:TAKE]-(c))
+
+MATCH (other:Student)-[t:TAKE]->(c:Course)
+WHERE (s)-[:TAKE]->(c:Course)
+WITH other, t
+MATCH (other)
+WHERE t 
+"""
