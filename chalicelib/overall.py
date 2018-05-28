@@ -8,7 +8,6 @@ def generate_overall(year, term, search_filter, student_id):
         "take": QUERY_TAKE_COURSES_THIS_TIME,
         "pinned": QUERY_PINNED_COURSES_THIS_TIME
     }
-    print(queries["all"])
     params = {"year": int(year), "term": term}
     res = gather_responses(student_id, queries, params)
 
@@ -68,13 +67,25 @@ def __generate_body(data):
         index = len(lst) // 2
         return sorted_lst[index]
 
+    def __prettify_time(time):
+        p = []
+        for e in time:
+            t = e.split(', ')
+            p.append({
+                "timeType": t[0],
+                "day": t[1],
+                "startTime": t[2][:5],
+                "endTime": t[3][:5]
+            })
+        return p
+
     res = []
     for lecture in data:
         info = {
             "professor": lecture[4],
             "division": lecture[5],
             "grades": lecture[6] if lecture[6] else lecture[-2],
-            "classTime": lecture[7],
+            "classTime": __prettify_time(lecture[7]),
             "load": lecture[8] if lecture[8] else __get_median(lecture[-1]),
             "limit": lecture[9]
         }

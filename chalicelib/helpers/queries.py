@@ -243,8 +243,8 @@ QUERY_SIMILAR_STUDENT_TAKES = """
             WHEN next_semester > 8 THEN range(7, 9)
             ELSE range(next_semester - 1, next_semester + 1)
         END
-    RETURN c.number, c.name, c.type, cnt
-    ORDER BY cnt DESC
+    RETURN c.number, c.subtitle, c.name, c.type, cnt
+    ORDER BY cnt DESC, c.number
     LIMIT 7
 """ % __get_next_semester()
 

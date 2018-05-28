@@ -19,5 +19,4 @@ def change_pinned_status(student_id, course_number, subtitle, is_pin):
     query = QUERY_PIN_COURSE if is_pin else QUERY_UNPIN_COURSE
     params = {"number": course_number, "subtitle": subtitle}
     res = gather_responses(student_id, {"result": query}, params)
-    print(res)
     return {"success": (len(res["result"]) != 0)}

@@ -5,8 +5,15 @@ from chalicelib.recommend import curriculum
 
 
 def get_relevance_data(student_id):
+    keys = ["courseNumber", "subtitle", "name", "courseType", "count"]
     res = gather_responses(student_id, {"similar": QUERY_SIMILAR_STUDENT_TAKES})
-    return res
+    ret = []
+    for r in res["similar"]:
+        tmp = {}
+        for idx, k in enumerate(keys):
+            tmp[k] = r[idx]
+        ret.append(tmp)
+    return ret
 
 
 def get_recommend_curriculum(student_id, history):
