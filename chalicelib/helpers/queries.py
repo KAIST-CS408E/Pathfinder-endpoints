@@ -59,39 +59,49 @@ QUERY_ABOUT_THIS_COURSE = """
 
 # 정책상 선수/후수 과목
 QUERY_REQUISITE_OF_THIS_COURSE = """
+    MATCH (s:Student {studentID: {studentID}})
+    WITH s
     MATCH (:Course {number: {courseNumber}, subtitle: {subtitle}})-[r:PREREQUISITE*]->(c:Course)
-    RETURN type(head(r)) as t, c.number, c.name, c.subtitle
+    RETURN type(head(r)) as t, c.number, c.name, c.subtitle, exists((s)-[:TAKE]->(c)) as take
     ORDER BY c.number
     UNION
+    MATCH (s:Student {studentID: {studentID}})
+    WITH s
     MATCH (:Course {number: {courseNumber}, subtitle: {subtitle}})-[r:POSTREQUISITE]->(c:Course)
-    RETURN type(r) as t, c.number, c.name, c.subtitle
+    RETURN type(r) as t, c.number, c.name, c.subtitle, exists((s)-[:TAKE]->(c)) as take
     ORDER BY c.number
 """
 
 # 같이 듣는 과목
 QUERY_WITH_THIS_COURSE = """
-    MATCH (:Course {number: {courseNumber}, subtitle: {subtitle}})<-[t1:TAKE]-(:Student)-[t2:TAKE]->(n:Course)
-    WHERE t1.semester = t2.semester
-    RETURN n.number, n.name, n.subtitle, count(*) as cnt
-    ORDER BY cnt DESC
+    MATCH (c:Course {number: {courseNumber}, subtitle: {subtitle}})<-[:TAKE]-(s:Student)
+    WITH c, count(DISTINCT s) as all
+    MATCH (c)<-[t1:TAKE]-(s:Student)-[t2:TAKE]->(n:Course)
+    WHERE t1.semester = t2.semester AND ID(n) <> ID(c)
+    RETURN n.number, n.name, n.subtitle, round(1000.0 * count(DISTINCT s) / all) / 10.0 as cnt
+    ORDER BY cnt DESC, n.number
     LIMIT 5
 """
 
 # 직전 과목들
 QUERY_BEFORE_THIS_COURSE = """
-    MATCH (n:Course)<-[t1:TAKE]-(:Student)-[t2:TAKE]->(:Course {number: {courseNumber}, subtitle: {subtitle}})
-    WHERE t1.semester + 1 = t2.semester
-    RETURN n.number, n.name, n.subtitle, count(*) as cnt
-    ORDER BY cnt DESC
+    MATCH (c:Course {number: {courseNumber}, subtitle: {subtitle}})<-[:TAKE]-(s:Student)
+    WITH c, count(DISTINCT s) as all
+    MATCH (c)<-[t1:TAKE]-(s:Student)-[t2:TAKE]->(n:Course)
+    WHERE t1.semester = t2.semester + 1 AND ID(n) <> ID(c)
+    RETURN n.number, n.name, n.subtitle, round(1000.0 * count(DISTINCT s) / all) / 10.0 as cnt
+    ORDER BY cnt DESC, n.number
     LIMIT 5
 """
 
 # 직후 과목들
 QUERY_AFTER_THIS_COURSE = """
-    MATCH (:Course {number: {courseNumber}, subtitle: {subtitle}})<-[t1:TAKE]-(:Student)-[t2:TAKE]->(n:Course)
-    WHERE t1.semester + 1 = t2.semester
-    RETURN n.number, n.name, n.subtitle, count(*) as cnt
-    ORDER BY cnt DESC
+    MATCH (c:Course {number: {courseNumber}, subtitle: {subtitle}})<-[:TAKE]-(s:Student)
+    WITH c, count(DISTINCT s) as all
+    MATCH (c)<-[t1:TAKE]-(s:Student)-[t2:TAKE]->(n:Course)
+    WHERE t1.semester + 1 = t2.semester AND ID(n) <> ID(c)
+    RETURN n.number, n.name, n.subtitle, round(1000.0 * count(DISTINCT s) / all) / 10.0 as cnt
+    ORDER BY cnt DESC, n.number
     LIMIT 5
 """
 
