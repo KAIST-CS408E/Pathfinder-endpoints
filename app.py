@@ -1,5 +1,8 @@
-from chalice import Chalice
+from chalice import Chalice, AuthResponse
+import boto3
+import os
 
+from chalicelib.helpers import auth
 from chalicelib import board
 from chalicelib import pin
 from chalicelib import plan
@@ -10,6 +13,8 @@ from chalicelib.overall import generate_overall
 from chalicelib.recommend import recommend
 
 app = Chalice(app_name='cs408e-endpoints')
+_USER_DB = None
+ENABLED_LOGIN = False
 
 
 # GET: 전체 개설과목 조회
@@ -112,7 +117,41 @@ def get_area_by_search_history():
     return relevance.get_recommend_curriculum(student_id, history)
 
 
+# POST: 로그인
+@app.route('/login', methods=['POST'])
+def login():
+    body = app.current_request.json_body
+    record = _get_users_db().get_item(
+        Key={'username': body['username']})['Item']
+    jwt_token = auth.get_jwt_token(
+        body['username'], body['password'], record)
+    return {'token': jwt_token}
+
+
+# App Authorizer
+@app.authorizer()
+def jwt_auth(auth_request):
+    token = auth_request.token
+    decoded = auth.decode_jwt_token(token)
+    return AuthResponse(routes=['*'], principal_id=decoded['sub'])
+
+
+# Test for login
+@app.route('/login/test', authorizer=jwt_auth)
+def hi():
+    return {"Your name": _get_authorized_student_id(app.current_request)}
+
+
 # Helper: 토큰
-def _get_authorized_student_id(req):
-    # TODO: Implement `Login` feature
-    return "SEAN"
+def _get_authorized_student_id(current_request):
+    if not ENABLED_LOGIN:
+        return "SEAN"
+    return current_request.context['authorizer']['principalId'].upper()
+
+
+def _get_users_db():
+    global _USER_DB
+    if _USER_DB is None:
+        _USER_DB = boto3.resource('dynamodb').Table(
+            os.environ['USERS_TABLE_NAME'])
+    return _USER_DB
