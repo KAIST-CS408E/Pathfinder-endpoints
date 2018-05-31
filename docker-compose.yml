@@ -6,6 +6,8 @@ services:
     ports:
       - 7687:7687
       - 7474:7474
+    volumes:
+      - $HOME/neo4j/data:/data
   elastic_search:
     image: docker.elastic.co/elasticsearch/elasticsearch:6.2.4
     ports:
