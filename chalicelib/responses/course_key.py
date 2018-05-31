@@ -1,13 +1,15 @@
 class CourseKey:
+
     def __init__(self, data):
         self.number = data[0]
-        self.name = data[1]
-        self.subtitle = data[2]
+        self.subtitle = data[1]
+        self.name = data[2] if len(data) == 3 else None
 
-    @property
-    def serialize(self):
-        return {
+    def serialize(self, include_name=False):
+        ret = {
             "courseNumber": self.number,
-            "name": self.name,
-            "subtitle": self.subtitle
+            "subtitle": self.subtitle,
         }
+        if include_name:
+            ret["name"] = self.name
+        return ret
